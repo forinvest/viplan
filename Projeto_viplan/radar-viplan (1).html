@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar de Mercado — Viplan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEEEEE;
+    --bg-2:#E5E5E5;
+    --surface:#FFFFFF;
+    --surface-2:#F5F5F4;
+    --white:#111216;
+    --mist:#555861;
+    --dim:#747982;
+    --line:rgba(17,18,22,0.12);
+    --line-strong:rgba(17,18,22,0.24);
+    --w-100:#111216;
+    --w-65:#686C74;
+    --w-35:#A4A7AD;
+    --w-15:#D1D3D6;
+    --shadow: 0 12px 28px -20px rgba(17,18,22,0.34);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--white);
+    font-family:'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  .display{font-family:'Barlow Condensed', sans-serif; text-transform:uppercase;}
+
+  /* ---------- topbar ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:24px; padding:20px 44px;
+    background:rgba(238,238,238,0.96);
+    border-bottom:1px solid var(--line);
+    position:sticky; top:0; z-index:50;
+  }
+  .brand{display:flex; align-items:center; gap:16px;}
+  .brand-mark{
+    width:58px;height:58px; position:relative; background:var(--white);
+    border-radius:10px; overflow:hidden; flex-shrink:0; object-fit:contain; padding:7px;
+  }
+  .brand-mark::after{
+    content:""; position:absolute; width:26px; height:26px; background:var(--bg);
+    border-radius:50%; bottom:-9px; left:-9px;
+  }
+  .brand-text{line-height:1.2;}
+  .brand-text .viplan{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:2.4px;color:var(--mist);margin-bottom:2px;}
+  .brand-text .k{
+    font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size:20px;
+    letter-spacing:0.5px; text-transform:uppercase; font-size:22px;
+  }
+  .brand-text .sub{
+    font-size:10.5px; letter-spacing:1.8px; text-transform:uppercase; color:var(--dim); margin-top:3px;
+  }
+  .tabs{display:flex; gap:2px; background:var(--surface); padding:3px; border-radius:8px; border:1px solid var(--line);}
+  .tab-btn{
+    appearance:none; border:none; background:transparent; color:var(--mist);
+    font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:14px; letter-spacing:0.6px;
+    text-transform:uppercase; padding:9px 20px; border-radius:6px; cursor:pointer; transition:all .18s ease;
+  }
+  .tab-btn.active{background:var(--white); color:#FFFFFF;}
+  .tab-btn:not(.active):hover{color:var(--white);}
+  button:focus-visible, .pin:focus-visible, .compare-check:focus-visible{outline:2px solid #111216; outline-offset:3px;}
+  .meta-count{font-size:11.5px; color:var(--dim); text-align:right; line-height:1.6;}
+  .meta-count b{color:var(--white); font-weight:600;}
+
+  main{max-width:1400px; margin:0 auto; padding:38px 44px 90px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .section-head{margin-bottom:26px; display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap;}
+  .section-head h1{
+    font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size:34px; margin:0 0 8px;
+    text-transform:uppercase; letter-spacing:0.4px; line-height:1;
+  }
+  .section-head p{margin:0; color:var(--mist); font-size:13.5px; max-width:560px; line-height:1.6;}
+
+  /* ---------- MAP VIEW ---------- */
+  .map-layout{display:grid; grid-template-columns:1.55fr 1fr; gap:22px; align-items:start;}
+  .map-canvas-wrap{
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    box-shadow:var(--shadow); overflow:hidden;
+  }
+  .map-canvas{
+    position:relative; width:100%; aspect-ratio:4/3.05;
+    background:#E1E4E7;
+    overflow:hidden;
+  }
+  .map-canvas.is-google{background:#E1E4E7;}
+  .map-canvas.fallback-map::before,
+  .map-canvas.fallback-map::after{content:"";position:absolute;inset:-20%;background:rgba(255,255,255,.48);transform:rotate(-24deg);height:14px;top:33%;box-shadow:0 110px 0 rgba(255,255,255,.42), 0 260px 0 rgba(255,255,255,.42);}
+  .map-canvas.fallback-map::after{transform:rotate(58deg);top:20%;left:20%;background:rgba(255,255,255,.36);box-shadow:0 145px 0 rgba(255,255,255,.32), 0 300px 0 rgba(255,255,255,.32);}
+  .zone{
+    position:absolute; border-radius:46% 54% 52% 48% / 52% 48% 54% 46%;
+    background:rgba(255,255,255,0.025); border:1px dashed var(--line-strong);
+  }
+  .zone-label{
+    position:absolute; font-family:'Barlow Condensed', sans-serif; font-weight:600;
+    font-size:12px; color:var(--dim); letter-spacing:1.4px; text-transform:uppercase; pointer-events:none;
+  }
+  .pin{
+    position:absolute; transform:translate(-50%,-100%); cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; z-index:5;
+  }
+  .pin-badge{
+    font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:11px;
+    padding:5px 10px; border-radius:20px; white-space:nowrap;
+    box-shadow:0 8px 18px -8px rgba(0,0,0,0.7);
+    transition:transform .15s ease;
+  }
+  .pin:hover .pin-badge{transform:scale(1.07);}
+  .pin:focus-visible{outline:none;}
+  .pin.selected .pin-badge{outline:2px solid var(--white); outline-offset:2px;}
+  .pin-stem{width:1.5px; height:12px; background:var(--line-strong);}
+  .pin-name{
+    margin-top:5px; font-size:10.5px; font-weight:600; color:var(--white);
+    background:rgba(255,255,255,0.92); padding:1px 7px; border-radius:4px; white-space:nowrap;
+    border:1px solid var(--line);
+  }
+  .map-name-label{position:absolute;transform:translate(-50%,0);white-space:nowrap;background:#fff;color:#111216;border:1px solid rgba(17,18,22,.18);border-radius:5px;padding:3px 6px;font-size:10px;font-weight:700;box-shadow:0 3px 10px rgba(17,18,22,.2);pointer-events:auto;cursor:pointer;}
+  .viplan-map-overlay{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;z-index:8;}
+  .viplan-map-overlay img{width:70px;height:70px;padding:10px;object-fit:contain;border-radius:50%;background:#111216;border:4px solid #fff;box-shadow:0 6px 18px rgba(17,18,22,.35);}
+  .viplan-map-overlay span{background:#111216;color:#fff;border-radius:5px;padding:5px 9px;font-size:11px;font-weight:700;box-shadow:0 3px 10px rgba(17,18,22,.24);}
+  .tier-low{background:transparent; color:var(--white); border:1.4px solid var(--w-35);}
+  .tier-mid{background:var(--w-15); color:var(--white); border:1.4px solid var(--w-35);}
+  .tier-high{background:var(--white); color:#FFFFFF; border:1.4px solid var(--white);}
+
+  .map-caption{
+    font-size:11px; color:var(--dim); padding:13px 20px; border-top:1px solid var(--line);
+    display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  }
+
+  .map-side{display:flex; flex-direction:column; gap:16px;}
+  .legend-card, .unlisted-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px 20px;
+    box-shadow:var(--shadow);
+  }
+  .legend-card h3, .unlisted-card h3{
+    margin:0 0 13px; font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size:15px;
+    text-transform:uppercase; letter-spacing:0.6px;
+  }
+  .legend-row{display:flex; align-items:center; gap:10px; font-size:12.5px; margin-bottom:10px; color:var(--mist);}
+  .legend-swatch{width:20px; height:14px; border-radius:4px; flex-shrink:0;}
+  .unlisted-item{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding:9px 0; border-bottom:1px solid var(--line); font-size:12.5px;
+  }
+  .unlisted-item:last-child{border-bottom:none;}
+  .unlisted-item .n{font-weight:500;}
+  .unlisted-item .r{color:var(--dim); font-size:11px;}
+
+  .dossier-panel{
+    margin-top:22px; background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    box-shadow:var(--shadow); min-height:160px;
+  }
+  .dossier-panel.is-open{position:fixed;top:88px;right:24px;width:min(440px,calc(100vw - 48px));max-height:calc(100vh - 112px);overflow:auto;z-index:70;margin:0;box-shadow:0 18px 45px rgba(17,18,22,.24);animation:drawer-in .22s ease-out;}
+  @keyframes drawer-in{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+  .dossier-empty{
+    padding:54px 30px; text-align:center; color:var(--dim); font-size:13px;
+  }
+  .dossier-empty .glyph{font-size:24px; margin-bottom:12px; opacity:.4;}
+
+  /* ---------- CARDS ---------- */
+  .cards-toolbar{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;
+    padding:13px 18px; background:var(--surface); border:1px solid var(--line); border-radius:10px;
+    font-size:12px; color:var(--mist);
+  }
+  .cards-grid{
+    display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px;
+  }
+
+  /* ---------- CARD (shared by grid + dossier) ---------- */
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:20px;
+    box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;
+    position:relative;
+  }
+  .card.is-selectable{padding-top:54px;}
+  .card-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .card-id{font-size:10.5px; color:var(--dim); letter-spacing:1.4px;}
+  .card-title{font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size:22px; margin:3px 0 4px;
+    text-transform:uppercase; letter-spacing:0.3px; line-height:1.02;}
+  .card-sub{font-size:12px; color:var(--mist);}
+  .card-sub .muted{color:var(--dim); font-style:italic;}
+  .badge{
+    font-size:10px; font-weight:600; padding:4px 10px; border-radius:20px; white-space:nowrap;
+    text-transform:uppercase; letter-spacing:0.6px; font-family:'Barlow Condensed',sans-serif;
+  }
+  .badge-launch{background:var(--white); color:var(--bg);}
+  .badge-pre{background:transparent; color:var(--mist); border:1px dashed var(--line-strong);}
+  .badge-selling{background:var(--w-15); color:var(--white); border:1px solid var(--w-35);}
+
+  .card-location{font-size:12.5px; color:var(--mist); display:flex; gap:7px; align-items:baseline;}
+  .card-location .muted{color:var(--dim); font-style:italic;}
+  .card-extra{font-size:11px; color:var(--mist); display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:-8px;}
+  .card-extra span{display:inline-flex; gap:5px; align-items:baseline;}
+  .card-extra b{font-size:9px; text-transform:uppercase; letter-spacing:.7px; color:var(--dim);}
+
+  .stat-row{display:flex; gap:10px;}
+  .stat{flex:1; background:var(--surface-2); border:1px solid var(--line); border-radius:9px; padding:11px 13px;}
+  .stat .lbl{font-size:9.5px; text-transform:uppercase; letter-spacing:0.8px; color:var(--dim); margin-bottom:5px;}
+  .stat .val{font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:14.5px; color:var(--white);}
+
+  .vm2-pill{
+    display:inline-flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px; font-weight:600; padding:5px 11px; border-radius:20px; width:fit-content;
+  }
+  .vm2-note{font-size:10.5px; color:var(--dim); margin-top:5px;}
+
+  .cond-block{border-top:1px solid var(--line); padding-top:13px;}
+  .cond-title{font-size:9.5px; text-transform:uppercase; letter-spacing:0.8px; color:var(--dim); margin-bottom:9px;}
+  .cond-bar{display:flex; width:100%; height:8px; border-radius:5px; overflow:hidden; margin-bottom:9px;
+    background:var(--surface-2); border:1px solid var(--line);}
+  .cond-seg{height:100%;}
+  .seg-entrada{background:var(--w-100);} .seg-parcelas{background:var(--w-65);}
+  .seg-baloes{background:var(--w-35);} .seg-saldo{background:var(--w-15);}
+  .cond-legend{display:flex; flex-wrap:wrap; gap:11px; font-size:10.5px; color:var(--mist);}
+  .cond-legend span{display:flex; align-items:center; gap:5px;}
+  .cond-legend i{width:8px;height:8px;border-radius:2px; display:inline-block; border:1px solid var(--line-strong);}
+  .cond-list{list-style:none; margin:0; padding:0; font-size:12px; color:var(--mist); line-height:2;}
+  .cond-list li strong{color:var(--white); font-family:'IBM Plex Mono',monospace; font-weight:600;}
+  .cond-empty{font-size:12px; color:var(--dim); font-style:italic;}
+
+  .amen-block{border-top:1px solid var(--line); padding-top:13px;}
+  .amen-title{font-size:9.5px; text-transform:uppercase; letter-spacing:0.8px; color:var(--dim); margin-bottom:9px; display:flex; justify-content:space-between;}
+  .amen-chips{display:flex; flex-wrap:wrap; gap:6px;}
+  .chip{
+    font-size:11px; padding:4px 10px; border-radius:20px; background:transparent; color:var(--mist);
+    border:1px solid var(--line-strong);
+  }
+  .amen-empty{font-size:12px; color:var(--dim); font-style:italic;}
+  .amen-details{margin-top:10px;}
+  .amen-details summary{cursor:pointer; color:var(--mist); font-size:11px;}
+  .amen-details ul{margin:8px 0 0; padding-left:17px; color:var(--dim); font-size:11px; line-height:1.55;}
+  .amen-details li{margin-bottom:5px;}
+  .amen-details strong{color:var(--mist);}
+
+  .card-select{
+    position:absolute; top:18px; right:18px; display:flex; align-items:center; gap:7px;
+  }
+  .compare-check{
+    width:18px; height:18px; border:1.5px solid var(--line-strong); border-radius:5px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; background:transparent; flex-shrink:0;
+  }
+  .compare-check.checked{background:var(--white); border-color:var(--white);}
+  .compare-check.checked::after{content:"✓"; color:var(--bg); font-size:12px; font-weight:700;}
+  .compare-label{font-size:10px; color:var(--dim); cursor:pointer; text-transform:uppercase; letter-spacing:0.5px;}
+
+  .dossier-panel .card{box-shadow:none; border:none; padding:26px;}
+  .project-media{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:-8px 0 2px;}
+  .project-media.single{grid-template-columns:1fr;}
+  .project-media figure{margin:0;position:relative;height:154px;background:#f1f1ef;border:1px solid var(--line);overflow:hidden;border-radius:9px;}
+  .project-media img{display:block;width:100%;height:100%;object-fit:contain;}
+  .project-media.single figure{height:178px;}
+  .project-media figcaption{position:absolute;left:8px;bottom:7px;padding:3px 7px;background:rgba(255,255,255,.92);border-radius:4px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--white);}
+  .project-media .media-empty{display:grid;place-items:center;height:148px;color:var(--dim);font-size:11px;}
+  .viplan-dossier{padding:26px;}
+  .viplan-dossier-mark{width:78px;height:78px;border-radius:14px;background:#111216;display:grid;place-items:center;margin-bottom:22px;overflow:hidden;}
+  .viplan-dossier-mark{font-family:'IBM Plex Mono',monospace;color:#fff;font-size:12px;font-weight:700;letter-spacing:2px;}
+  .viplan-dossier h2{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;font-size:30px;line-height:1;margin:7px 0 8px;}
+  .viplan-dossier-address{font-size:13px;color:var(--mist);margin:0 0 22px;}
+  .viplan-dossier-highlight{background:#111216;color:#fff;border-radius:9px;padding:16px;font-size:13px;line-height:1.5;margin-bottom:18px;}
+  .viplan-dossier-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid var(--line);padding-top:16px;font-size:12px;}
+  .viplan-dossier-grid span{color:var(--dim);}
+  .viplan-dossier-grid strong{text-align:right;}
+  .close-dossier{
+    position:absolute; top:18px; right:18px; background:none; border:none; cursor:pointer;
+    font-size:18px; color:var(--dim);
+  }
+
+  /* ---------- COMPARE TRAY ---------- */
+  .compare-tray{
+    position:fixed; inset:50% auto auto 50%; transform:translate(-50%,-50%); width:min(1040px,calc(100vw - 32px));
+    max-height:calc(100vh - 48px); overflow:auto; z-index:100; background:#111216; color:#FFFFFF;
+    border-radius:14px; box-shadow:0 22px 60px rgba(0,0,0,0.3);
+    padding:24px 26px 26px; display:none; border:1px solid rgba(255,255,255,.16);
+  }
+  .compare-tray.show{display:block;}
+  body:has(.compare-tray.show){overflow:hidden;}
+  body:has(.compare-tray.show)::before{content:"";position:fixed;inset:0;background:rgba(17,18,22,.52);z-index:90;}
+  .tray-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;}
+  .tray-head h3{margin:0; font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size:19px;
+    text-transform:uppercase; letter-spacing:0.5px;}
+  .tray-actions{display:flex;align-items:center;gap:8px;}
+  .tray-clear,.tray-close{background:none; border:1px solid rgba(255,255,255,.28); color:#FFFFFF;
+    font-size:11px; padding:7px 14px; border-radius:20px; cursor:pointer; text-transform:uppercase; letter-spacing:0.5px;}
+  .tray-grid{display:grid; gap:16px;}
+  .tray-row{display:grid; grid-template-columns:130px repeat(auto-fit, minmax(0,1fr)); gap:14px; align-items:start;
+    border-top:1px solid rgba(255,255,255,.14); padding-top:12px; font-size:12.5px;}
+  .tray-row:first-child{border-top:none; padding-top:0;}
+  .tray-rowlabel{font-size:9.5px; text-transform:uppercase; letter-spacing:0.8px; color:rgba(255,255,255,.62); padding-top:3px;}
+  .tray-col-title{font-family:'Barlow Condensed', monospace; font-weight:700; font-size:15px; color:#FFFFFF;
+    text-transform:uppercase; font-family:'Barlow Condensed',sans-serif;}
+  .tray-amen-yes{color:#FFFFFF;}
+  .tray-amen-no{color:rgba(255,255,255,.48);}
+
+  @media (max-width:1120px){.cards-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+
+  @media (max-width:980px){
+    .map-layout{grid-template-columns:1fr;}
+    .topbar{padding:16px 20px; flex-wrap:wrap; gap:12px;}
+    main{padding:26px 18px 60px;}
+  }
+  @media (max-width:620px){
+    .topbar{align-items:flex-start;}
+    .brand{min-width:0;}
+    .brand-mark{width:50px;height:50px;}
+    .brand-text .k{font-size:17px;}
+    .brand-text .sub{font-size:9px;letter-spacing:1.2px;}
+    .tabs{order:3;width:100%;}
+    .tab-btn{flex:1;padding-inline:10px;}
+    .meta-count{display:none;}
+    .section-head h1{font-size:29px;line-height:1.05;}
+    .map-canvas{aspect-ratio:1/1.05;}
+    .map-caption{font-size:10px;}
+    .stat-row{flex-direction:column;}
+    .cards-grid{grid-template-columns:1fr;}
+    .card{padding:17px;}
+    .card.is-selectable{padding-top:54px;}
+    .tray-row{grid-template-columns:86px repeat(auto-fit,minmax(150px,1fr)) !important;overflow-x:auto;}
+    .tray-grid{overflow-x:auto;}
+    .dossier-panel.is-open{top:72px;right:12px;left:12px;width:auto;max-height:calc(100vh - 88px);}
+    .dossier-panel .card{padding:20px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;scroll-behavior:auto !important;transition-duration:.01ms !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <img class="brand-mark" src="logo-2023 (2).png" alt="Viplan">
+    <div class="brand-text">
+      <div class="viplan">VIPLAN</div>
+      <div class="k">Radar de Mercado</div>
+      <div class="sub">Viplan · Inteligência competitiva</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-view="map">Mapa</button>
+    <button class="tab-btn" data-view="cards">Battle Cards</button>
+  </div>
+  <div class="meta-count"><b id="totalCount">10</b> empreendimentos monitorados<br>Joinville/SC · ago/2026</div>
+</header>
+
+<main>
+
+  <!-- ===================== MAP VIEW ===================== -->
+  <section id="view-map" class="view active">
+    <div class="section-head">
+      <div>
+        <h1>Onde os concorrentes estão lançando</h1>
+        <p>Clique em um pino para abrir o dossiê completo do empreendimento. A intensidade do pino indica o preço por m² frente à média monitorada.</p>
+      </div>
+    </div>
+
+    <div class="map-layout">
+      <div class="map-canvas-wrap">
+        <div class="map-canvas" id="mapCanvas"></div>
+        <div class="map-caption">
+          <span id="mapStatus">Mapa esquemático por bairro — fallback do mockup.</span>
+          <span>Google Maps · endereços confirmados</span>
+        </div>
+      </div>
+
+      <div class="map-side">
+        <div class="legend-card">
+          <h3>Leitura do preço por m²</h3>
+          <div class="legend-row"><span class="legend-swatch tier-low"></span>Abaixo da média monitorada</div>
+          <div class="legend-row"><span class="legend-swatch tier-mid"></span>Na média monitorada</div>
+          <div class="legend-row"><span class="legend-swatch tier-high"></span>Acima da média monitorada</div>
+        </div>
+        <div class="unlisted-card" id="unlistedCard">
+          <h3>Sem localização confirmada</h3>
+          <div id="unlistedList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dossier-panel" id="dossierPanel">
+      <div class="dossier-empty">
+        <div class="glyph">◎</div>
+        Selecione um pino no mapa para ver o dossiê completo do empreendimento.
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CARDS VIEW ===================== -->
+  <section id="view-cards" class="view">
+    <div class="section-head">
+      <div>
+        <h1>Battle cards</h1>
+        <p>Um cartão por empreendimento, com tamanho, preço, condição de pagamento e lazer no que já foi coletado.</p>
+      </div>
+    </div>
+    <div class="cards-toolbar">
+      <span>Marque até 3 empreendimentos para comparar lado a lado.</span>
+      <span id="selCount">0 selecionados</span>
+    </div>
+    <div class="cards-grid" id="cardsGrid"></div>
+
+    <div class="compare-tray" id="compareTray">
+      <div class="tray-head">
+        <h3>Comparação lado a lado</h3>
+        <div class="tray-actions">
+          <button class="tray-clear" id="trayClear">Limpar seleção</button>
+          <button class="tray-close" id="trayClose">Fechar</button>
+        </div>
+      </div>
+      <div class="tray-grid" id="trayGrid"></div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ===================== DATA (extraído da base de concorrentes) ===================== */
+const DATA = [
+  {
+    id:"C001", nome:"G8", incorporadora:"ZR3", bairro:"América", endereco:"Rua Marechal Floriano, 226",
+    status:"Lançamento", segmento:"Misto", tipologia:"1 tipologia",
+    areaMin:21, areaMax:null,
+    precoMenor:280000, precoAvista:220000,
+    vm2Informado:null, vm2Calc:13333.33,
+    pay:{entradaPct:null, entradaVal:null, parcelasQtd:24, parcelasPct:null, parcelaVal:null,
+         baloesQtd:null, baloesPct:null, baloVal:null, saldoPct:null, saldoVal:null, correcao:null},
+    condTexto:"24x acima de 2 unidades. R$ 220.000 à vista | R$ 280.000 a prazo.",
+    amenidades:[],
+    zone:"america", imagens:{fachada:"fachada zr3.png"}
+  },
+  {
+    id:"C002", nome:"Costa Park", incorporadora:"Inovar", bairro:"Costa e Silva", endereco:"Rua Landmann, 90",
+    status:"Em vendas", segmento:"Misto", tipologia:"Studio a 2 dorm.",
+    areaMin:33, areaMax:63,
+    precoMenor:272000, precoAvista:null,
+    vm2Informado:null, vm2Calc:8242.42,
+    pay:{entradaPct:null, entradaVal:10000, parcelasQtd:40, parcelasPct:null, parcelaVal:804.32,
+         baloesQtd:3, baloesPct:null, baloVal:5000, saldoPct:null, saldoVal:null, correcao:null},
+    condTexto:"R$ 10.000 de sinal + 40x de R$ 804,32 + 3 balões de R$ 5.000.",
+    amenidades:[],
+    zone:"costaesilva", imagens:{fachada:"Costa Park.png"}
+  },
+  {
+    id:"C003", nome:"Vanguard Ginásticos", incorporadora:"Vanguard", bairro:null, endereco:"Rua dos Ginásticos",
+    status:"Em vendas", segmento:"Misto", tipologia:"Studio a 2 dorm.",
+    areaMin:26, areaMax:56,
+    precoMenor:415600, precoAvista:null,
+    vm2Informado:12968.75, vm2Calc:15984.62,
+    pay:{entradaPct:0.10, entradaVal:null, parcelasQtd:47, parcelasPct:0.10, parcelaVal:null,
+         baloesQtd:6, baloesPct:0.15, baloVal:null, saldoPct:0.65, saldoVal:null, correcao:"INCC"},
+    condTexto:"10% de entrada + 10% em 47x + 15% em 6 balões + 65% no final da obra, com correção INCC.",
+    amenidades:["Academia","Piscina","Coworking / work lounge","Varanda gourmet","Praça descoberta","Lavanderia coletiva","Mini market","Maleiro / depósito","Delivery / locker"],
+    zone:null, imagens:{fachada:"vanguard .png", planta:"vanguard 1.png"}
+  },
+  {
+    id:"C004", nome:"Vanguard Batalhão", incorporadora:"Halsten", bairro:null, endereco:"Rua 449, R. Sen. Felipe Schmidt",
+    status:"Lançamento", segmento:"Studio", tipologia:"Studio",
+    areaMin:25, areaMax:33,
+    precoMenor:350000, precoAvista:null,
+    vm2Informado:14000, vm2Calc:14000,
+    pay:{entradaPct:0.15, entradaVal:null, parcelasQtd:null, parcelasPct:null, parcelaVal:null,
+         baloesQtd:null, baloesPct:null, baloVal:null, saldoPct:0.40, saldoVal:null, correcao:null},
+    condTexto:"Condição 60/40, com 15% de entrada.",
+    amenidades:[],
+    zone:null, imagens:{fachada:"vanguard .png", planta:"vanguard 1.png"}
+  },
+  {
+    id:"C010", nome:"Empreendimento Rua Prudente de Morais", incorporadora:null, bairro:null, endereco:"Rua Prudente de Morais, Joinville - SC",
+    status:"Pré-lançamento", segmento:"Residencial", tipologia:"A definir",
+    areaMin:29, areaMax:39,
+    precoMenor:350000, precoAvista:null,
+    vm2Informado:null, vm2Calc:12068.97,
+    pay:{entradaPct:null, entradaVal:null, parcelasQtd:null, parcelasPct:null, parcelaVal:null,
+         baloesQtd:null, baloesPct:null, baloVal:null, saldoPct:null, saldoVal:null, correcao:null},
+    condTexto:"Condições de pagamento não divulgadas.",
+    previsaoLancamento:"30 a 60 dias", garagem:"Com vaga",
+    amenidades:[],
+    zone:null, imagens:{}
+  },
+  {
+    id:"C005", nome:"Stay", incorporadora:"Infrasul", bairro:"Anita Garibaldi", endereco:"Rua Pernambuco, 241",
+    status:"Em vendas", segmento:"Misto", tipologia:"Studio a 2 dorm. (unid. comparada c/ 1 vaga)",
+    areaMin:41.85, areaMax:70,
+    precoMenor:551702, precoAvista:513082.86,
+    vm2Informado:13166, vm2Calc:13182.84,
+    pay:{entradaPct:0.10, entradaVal:55170, parcelasQtd:20, parcelasPct:0.10, parcelaVal:2759,
+         baloesQtd:1, baloesPct:0.10, baloVal:55170, saldoPct:0.70, saldoVal:386182, correcao:null},
+    condTexto:"Tabela financiamento: entrada + 20x + balão + financiamento (10/10/10/70). Tabela investidor (pagamento até 03/28): R$ 513.082,86.",
+    amenidades:["Academia","Piscina","Salão de festas","Coworking / work lounge","Playground","Bar","Pet place"],
+    zone:"anitagaribaldi", imagens:{fachada:"Stay.jpg", planta:"Stay Planta.png"}
+  },
+  {
+    id:"C006", nome:"Sync Joinville", incorporadora:null, bairro:"Atiradores", endereco:"Rua Marajó, 51",
+    status:"Em vendas", segmento:"Misto", tipologia:"1 dorm. a 2 suítes",
+    areaMin:25.25, areaMax:61.84,
+    precoMenor:297074.02, precoAvista:null,
+    vm2Informado:null, vm2Calc:11765.31,
+    pay:{entradaPct:0.18, entradaVal:53473.32, parcelasQtd:100, parcelasPct:0.36, parcelaVal:1069.47,
+         baloesQtd:14, baloesPct:0.36, baloVal:7639.05, saldoPct:0.10, saldoVal:29707.40, correcao:null},
+    condTexto:"Unidade 1309 (25,25 m²): entrada + 100x + 14 semestrais + chaves. Estrutura 18% / 36% / 36% / 10%.",
+    amenidades:["Academia","Piscina","Salão de festas","Coworking / work lounge","Lavanderia coletiva","Rooftop","Bicicletário","Deck","Espaço gourmet","Estar social / lounge","Sala de jogos","Solarium","Medidores individuais","Elevador","Hall decorado"],
+    zone:null, imagens:{fachada:"Sync.jpg"}
+  },
+  {
+    id:"C007", nome:"Monte Palatino Residencial", incorporadora:"In Loco", bairro:"Glória", endereco:"Rua Jaú, 190",
+    status:"Pré-lançamento", segmento:"Misto", tipologia:"Studio a suíte + 1",
+    areaMin:25, areaMax:54,
+    precoMenor:263150, precoAvista:null, precoEstimado:true,
+    vm2Informado:10526, vm2Calc:10526,
+    pay:{entradaPct:null, entradaVal:null, parcelasQtd:null, parcelasPct:null, parcelaVal:null,
+         baloesQtd:null, baloesPct:null, baloVal:null, saldoPct:null, saldoVal:null, correcao:null},
+    condTexto:"Condições de pagamento não divulgadas no material de pré-lançamento.",
+    amenidades:["Salão de festas","Coworking / work lounge","Playground","Pet place","Mini market","Estar social / lounge","Elevador","Fire place"],
+    zone:"gloria", imagens:{fachada:"Monte Palantino.jpeg", planta:"Monte palantino planta.jpeg"}
+  },
+  {
+    id:"C008", nome:"Pulse", incorporadora:"Halsten", bairro:"Centro", endereco:"Rua Max Colin, 635",
+    status:"Em vendas", segmento:"Studio", tipologia:"Studio (1 dorm. + 1 vaga)",
+    areaMin:33.63, areaMax:34.81,
+    precoMenor:478063.45, precoAvista:null,
+    vm2Informado:null, vm2Calc:14215.39,
+    pay:{entradaPct:0.12, entradaVal:57367.61, parcelasQtd:38, parcelasPct:0.13, parcelaVal:1635.48,
+         baloesQtd:3, baloesPct:0.15, baloVal:23903.17, saldoPct:0.60, saldoVal:286838.07, correcao:null},
+    condTexto:"Unidade 2016 (33,63 m²): entrada + 38x + 3 reforços + financiamento. Estrutura 12% / 13% / 15% / 60%.",
+    amenidades:["Academia","Piscina","Salão de festas","Playground","Bar","Pet place","Lavanderia coletiva","Mini market","Maleiro / depósito","Rooftop","Bicicletário","Espaço gourmet","Estar social / lounge","Sala de jogos","Medidores individuais","Elevador","Hall decorado","Brinquedoteca","Sala de reunião","Pub","Espaço contemplação","Estacionamento rotativo","Circuito de TV","Interfone","Internet"],
+    zone:"centro", imagens:{fachada:"Halsten.jpg", planta:"Halsten planta.jpg"}
+  },
+  {
+    id:"C009", nome:"Celebra", incorporadora:"Inovar", bairro:"Centro", endereco:"Rua Timbó, 90",
+    status:"Lançamento", segmento:"Residencial", tipologia:"Studio",
+    areaMin:27, areaMax:null,
+    precoMenor:309000, precoAvista:null,
+    vm2Informado:null, vm2Calc:11444.44,
+    pay:{entradaPct:null, entradaVal:null, parcelasQtd:null, parcelasPct:null, parcelaVal:null,
+         baloesQtd:null, baloesPct:null, baloVal:null, saldoPct:null, saldoVal:null, correcao:null},
+    condTexto:"Condições de pagamento não divulgadas.",
+    entrega:"Dezembro / 2028", garagem:"Sem garagem",
+    amenidades:["Academia","Área Pet","Brinquedoteca","Coworking","Horta","Piscina aquecida","Playground","Quiosque","Salão de festas","Salão Gourmet"],
+    amenidadeDescricoes:{
+      "Academia":"Cuide do seu bem-estar físico e mantenha uma rotina ativa com a comodidade de ter uma academia no prédio.",
+      "Área Pet":"Pet Place para o seu melhor amigo também aproveitar esse novo jeito de viver perto do mar.",
+      "Brinquedoteca":"Espaço dedicado para as crianças soltarem a imaginação e se divertirem com jogos e atividades educativas.",
+      "Coworking":"Onde eficácia e conforto convergem para você trabalhar sem se deslocar e sem sair do seu apartamento.",
+      "Horta":"Horta coletiva para incentivar uma rotina mais leve, saudável e conectada com o bem-estar.",
+      "Piscina aquecida":"Piscina aquecida para aproveitar momentos de lazer e relaxamento em qualquer estação do ano.",
+      "Playground":"Espaço coberto para os pequenos explorarem a imaginação e se divertirem até em dias de chuva.",
+      "Quiosque":"Ambiente acolhedor e confortável para receber os amigos ao ar livre.",
+      "Salão de festas":"O local perfeito para comemorar seus momentos especiais com maior praticidade.",
+      "Salão Gourmet":"Ambiente íntimo e aconchegante para receber seus convidados."
+    },
+    zone:"centro", imagens:{}
+  }
+];
+
+const VIPLAN_PROJECT = {
+  id:"VIPLAN-001",
+  nome:"Projeto Viplan",
+  endereco:"Rua Timbó",
+  cidade:"Joinville - SC, Brasil"
+};
+
+const ZONES = {
+  america:      {label:"América",        top:"24%", left:"20%", w:150, h:120},
+  costaesilva:  {label:"Costa e Silva",  top:"64%", left:"14%", w:170, h:130},
+  anitagaribaldi:{label:"Anita Garibaldi",top:"66%", left:"72%", w:170, h:130},
+  gloria:       {label:"Glória",         top:"18%", left:"68%", w:150, h:120},
+  centro:       {label:"Centro",         top:"42%", left:"46%", w:160, h:130}
+};
+
+/* ===================== HELPERS ===================== */
+const fmtBRL = v => v==null ? null : "R$ " + v.toLocaleString('pt-BR',{minimumFractionDigits:0, maximumFractionDigits:0});
+const fmtBRL2 = v => v==null ? null : "R$ " + v.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtPct = v => v==null ? null : (v*100).toLocaleString('pt-BR',{maximumFractionDigits:0}) + "%";
+const fmtArea = d => d.areaMax ? `${d.areaMin.toString().replace('.',',')} – ${d.areaMax.toString().replace('.',',')} m²` : `${d.areaMin.toString().replace('.',',')} m²`;
+
+const avgVm2 = DATA.reduce((s,d)=>s+d.vm2Calc,0) / DATA.length;
+function tier(d){
+  if(d.vm2Calc < avgVm2*0.92) return 'low';
+  if(d.vm2Calc > avgVm2*1.08) return 'high';
+  return 'mid';
+}
+
+function statusBadgeClass(s){
+  if(s==="Lançamento") return "badge-launch";
+  if(s==="Pré-lançamento") return "badge-pre";
+  return "badge-selling";
+}
+
+function paymentBar(d){
+  const p = d.pay;
+  const parts = [
+    {k:'entrada', pct:p.entradaPct, cls:'seg-entrada'},
+    {k:'parcelas', pct:p.parcelasPct, cls:'seg-parcelas'},
+    {k:'baloes', pct:p.baloesPct, cls:'seg-baloes'},
+    {k:'saldo', pct:p.saldoPct, cls:'seg-saldo'}
+  ].filter(x=>x.pct!=null);
+  if(parts.length < 2) return null;
+  return parts;
+}
+
+function conditionListItems(d){
+  const p = d.pay; const items = [];
+  if(p.entradaVal!=null || p.entradaPct!=null){
+    items.push(`Entrada: <strong>${p.entradaVal!=null? fmtBRL(p.entradaVal): fmtPct(p.entradaPct)}</strong>`);
+  }
+  if(p.parcelasQtd!=null){
+    let seg = `${p.parcelasQtd}x`;
+    if(p.parcelaVal!=null) seg += ` de <strong>${fmtBRL2(p.parcelaVal)}</strong>`;
+    else if(p.parcelasPct!=null) seg = `<strong>${fmtPct(p.parcelasPct)}</strong> em ${p.parcelasQtd}x`;
+    items.push(`Parcelas: ${seg}`);
+  }
+  if(p.baloesQtd!=null){
+    let seg = `${p.baloesQtd}`;
+    if(p.baloVal!=null) seg += ` de <strong>${fmtBRL(p.baloVal)}</strong>`;
+    else if(p.baloesPct!=null) seg = `<strong>${fmtPct(p.baloesPct)}</strong> em ${p.baloesQtd}`;
+    items.push(`Balões: ${seg}`);
+  }
+  if(p.saldoVal!=null || p.saldoPct!=null){
+    items.push(`Saldo/chaves: <strong>${p.saldoVal!=null? fmtBRL(p.saldoVal): fmtPct(p.saldoPct)}</strong>`);
+  }
+  if(p.correcao) items.push(`Correção: <strong>${p.correcao}</strong>`);
+  return items;
+}
+
+/* ===================== RENDER: MAP ===================== */
+// Preencha com uma chave restrita por domínio para ativar o mapa real.
+const GOOGLE_MAPS_API_KEY = "AIzaSyBafYdN68twanTqnMk_axbGG___-HfFLtg";
+
+function loadGoogleMaps(){
+  if(!GOOGLE_MAPS_API_KEY) return Promise.resolve(false);
+  if(window.google?.maps) return Promise.resolve(true);
+  return new Promise(resolve=>{
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=marker`;
+    script.async = true;
+    script.onload = ()=>resolve(true);
+    script.onerror = ()=>resolve(false);
+    document.head.appendChild(script);
+  });
+}
+
+function mapPinIcon(d){
+  const fill = tier(d)==='high' ? '#111216' : tier(d)==='mid' ? '#686C74' : '#FFFFFF';
+  const stroke = tier(d)==='low' ? '#111216' : fill;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="46" viewBox="0 0 38 46"><path d="M19 44S3 28.2 3 17.5C3 8.94 10.16 2 19 2s16 6.94 16 15.5C35 28.2 19 44 19 44Z" fill="${fill}" stroke="${stroke}" stroke-width="2"/><circle cx="19" cy="17" r="5" fill="${tier(d)==='high' ? '#FFFFFF' : '#111216'}"/></svg>`;
+  return {url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),scaledSize:new google.maps.Size(30,36),anchor:new google.maps.Point(15,35),labelOrigin:new google.maps.Point(15,41)};
+}
+
+function addMapNameLabel(map,position,d){
+  const overlay = new google.maps.OverlayView();
+  const label = document.createElement('div');
+  label.className = 'map-name-label';
+  label.textContent = d.nome;
+  label.setAttribute('role','button');
+  label.setAttribute('aria-label',`Abrir informações de ${d.nome}`);
+  label.addEventListener('click',()=>openDossier(d.id));
+  overlay.onAdd = ()=>overlay.getPanes().floatPane.appendChild(label);
+  overlay.draw = ()=>{
+    const point = overlay.getProjection().fromLatLngToDivPixel(position);
+    if(point){ label.style.left=`${point.x}px`; label.style.top=`${point.y + 5}px`; }
+  };
+  overlay.onRemove = ()=>label.remove();
+  overlay.setMap(map);
+}
+
+function addViplanMapOverlay(map,position){
+  const overlay = new google.maps.OverlayView();
+  const pin = document.createElement('div');
+  pin.className = 'viplan-map-overlay';
+  pin.innerHTML = `<img src="logo-2023 (2).png" alt="Logo Viplan"><span>PROJETO VIPLAN</span>`;
+  pin.addEventListener('click',openViplanPanel);
+  overlay.onAdd = ()=>overlay.getPanes().floatPane.appendChild(pin);
+  overlay.draw = ()=>{
+    const point = overlay.getProjection().fromLatLngToDivPixel(position);
+    if(point){ pin.style.left=`${point.x}px`; pin.style.top=`${point.y}px`; }
+  };
+  overlay.onRemove = ()=>pin.remove();
+  overlay.setMap(map);
+}
+
+function renderGoogleMap(){
+  const canvas = document.getElementById('mapCanvas');
+  canvas.classList.remove('fallback-map');
+  canvas.classList.add('is-google');
+  canvas.innerHTML = '';
+  const map = new google.maps.Map(canvas, {
+    center:{lat:-26.3045,lng:-48.8487}, zoom:13,
+    mapTypeControl:false, streetViewControl:false, fullscreenControl:true,
+    styles:[
+      {elementType:'geometry',stylers:[{color:'#e1e4e7'}]},
+      {elementType:'labels.text.fill',stylers:[{color:'#4d535b'}]},
+      {elementType:'labels.text.stroke',stylers:[{color:'#e1e4e7'}]},
+      {featureType:'road',elementType:'geometry',stylers:[{color:'#ffffff'}]},
+      {featureType:'road',elementType:'geometry.stroke',stylers:[{color:'#cbd0d5'}]},
+      {featureType:'water',elementType:'geometry',stylers:[{color:'#c5d7dc'}]},
+      {featureType:'poi',elementType:'geometry',stylers:[{color:'#d7dbd9'}]}
+    ]
+  });
+  const geocoder = new google.maps.Geocoder();
+  const bounds = new google.maps.LatLngBounds();
+  let locatedCount = 0;
+  const competitorsWithAddress = DATA.filter(d=>d.endereco);
+  competitorsWithAddress.forEach(d=>{
+    geocoder.geocode({address:`${d.endereco}, Joinville - SC, Brasil`}, (results,status)=>{
+      if(status !== 'OK' || !results[0]) return;
+      const position = results[0].geometry.location;
+      bounds.extend(position);
+      locatedCount += 1;
+      const marker = new google.maps.Marker({
+        map,
+        position,
+        title:d.nome,
+        icon:mapPinIcon(d)
+      });
+      marker.addListener('click',()=>openDossier(d.id));
+      addMapNameLabel(map,position,d);
+      if(locatedCount === competitorsWithAddress.length) map.fitBounds(bounds, 48);
+    });
+  });
+  geocoder.geocode({address:`${VIPLAN_PROJECT.endereco}, ${VIPLAN_PROJECT.cidade}`}, (results,status)=>{
+    if(status !== 'OK' || !results[0]) return;
+    const position = results[0].geometry.location;
+    bounds.extend(position);
+    addViplanMapOverlay(map,position);
+    if(locatedCount === competitorsWithAddress.length) map.fitBounds(bounds,48);
+  });
+  document.getElementById('mapStatus').textContent = 'Mapa real por endereço · Google Maps';
+}
+
+function renderMap(){
+  const canvas = document.getElementById('mapCanvas');
+  canvas.classList.add('fallback-map');
+  canvas.innerHTML = '';
+  Object.entries(ZONES).forEach(([key,z])=>{
+    const zoneEl = document.createElement('div');
+    zoneEl.className='zone';
+    zoneEl.style.top=z.top; zoneEl.style.left=z.left;
+    zoneEl.style.width=z.w+'px'; zoneEl.style.height=z.h+'px';
+    canvas.appendChild(zoneEl);
+    const label = document.createElement('div');
+    label.className='zone-label';
+    label.textContent=z.label;
+    label.style.top=`calc(${z.top} - 16px)`;
+    label.style.left=z.left;
+    canvas.appendChild(label);
+  });
+
+  DATA.filter(d=>d.zone).forEach(d=>{
+    const z = ZONES[d.zone];
+    const pin = document.createElement('div');
+    pin.className='pin';
+    pin.dataset.id=d.id;
+    pin.tabIndex=0;
+    pin.setAttribute('role','button');
+    pin.setAttribute('aria-label',`${d.nome}, ${Math.round(d.vm2Calc).toLocaleString('pt-BR')} reais por metro quadrado`);
+    pin.style.top = `calc(${z.top} + ${z.h/2}px)`;
+    pin.style.left = `calc(${z.left} + ${z.w/2}px)`;
+    pin.innerHTML = `
+      <div class="pin-badge tier-${tier(d)}">R$ ${Math.round(d.vm2Calc).toLocaleString('pt-BR')}/m²</div>
+      <div class="pin-stem"></div>
+      <div class="pin-name">${d.nome}</div>
+    `;
+    pin.addEventListener('click', ()=>openDossier(d.id));
+    pin.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); openDossier(d.id); } });
+    canvas.appendChild(pin);
+  });
+
+  const unlistedList = document.getElementById('unlistedList');
+  const unlisted = DATA.filter(d=>!d.endereco);
+  unlistedList.innerHTML = unlisted.map(d=>`
+    <div class="unlisted-item">
+      <span class="n">${d.nome}</span>
+      <span class="r mono">R$ ${Math.round(d.vm2Calc).toLocaleString('pt-BR')}/m²</span>
+    </div>
+  `).join('') || '<span style="font-size:12px;color:var(--dim)">Todos os concorrentes têm localização confirmada.</span>';
+  document.getElementById('unlistedCard').style.display = unlisted.length ? 'block' : 'none';
+  loadGoogleMaps().then(enabled=>{ if(enabled) renderGoogleMap(); });
+}
+
+function openDossier(id){
+  const d = DATA.find(x=>x.id===id);
+  const panel = document.getElementById('dossierPanel');
+  document.querySelectorAll('.pin').forEach(pin=>pin.classList.remove('selected'));
+  const clickedPin = [...document.querySelectorAll('.pin')].find(pin=>pin.dataset.id===id);
+  if(clickedPin) clickedPin.classList.add('selected');
+  panel.classList.add('is-open');
+  panel.innerHTML = `<button class="close-dossier" id="closeDossier">✕</button>` + cardHTML(d, false);
+  document.getElementById('closeDossier').addEventListener('click', ()=>{
+    panel.classList.remove('is-open');
+    panel.innerHTML = `<div class="dossier-empty"><div class="glyph">◎</div>Selecione um pino no mapa para ver o dossiê completo do empreendimento.</div>`;
+    document.querySelectorAll('.pin').forEach(pin=>pin.classList.remove('selected'));
+  });
+}
+
+function openViplanPanel(){
+  const panel = document.getElementById('dossierPanel');
+  panel.classList.add('is-open');
+  panel.innerHTML = `<button class="close-dossier" id="closeDossier">✕</button>
+    <div class="viplan-dossier">
+      <div class="viplan-dossier-mark">VIPLAN</div>
+      <div class="card-id mono">VIPLAN-001 · PROJETO PRÓPRIO</div>
+      <h2>Projeto Viplan</h2>
+      <p class="viplan-dossier-address">📍 Rua Timbó, Joinville — SC</p>
+      <div class="viplan-dossier-highlight">Este é o ponto estratégico do novo projeto Viplan.</div>
+      <div class="viplan-dossier-grid"><span>Endereço</span><strong>Rua Timbó</strong><span>Posicionamento</span><strong>Projeto Viplan</strong></div>
+    </div>`;
+  document.getElementById('closeDossier').addEventListener('click',()=>{
+    panel.classList.remove('is-open');
+    panel.innerHTML = `<div class="dossier-empty"><div class="glyph">◎</div>Selecione um pino no mapa para ver o dossiê completo do empreendimento.</div>`;
+  });
+}
+
+/* ===================== CARD TEMPLATE (used in grid + dossier) ===================== */
+function mediaHTML(d){
+  const media = d.imagens || {};
+  const items = [
+    media.fachada ? {src:media.fachada,label:'Fachada'} : null,
+    media.planta ? {src:media.planta,label:'Planta'} : null
+  ].filter(Boolean);
+  if(!items.length) return '';
+  return `<div class="project-media ${items.length===1?'single':''}">${items.map(item=>`
+    <figure><img src="${item.src}" alt="${item.label} do empreendimento ${d.nome}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\"media-empty\">Imagem indisponível</div>'"><figcaption>${item.label}</figcaption></figure>
+  `).join('')}</div>`;
+}
+
+function cardHTML(d, selectable){
+  const loc = d.bairro
+    ? `${d.bairro} · ${d.endereco || ''}`
+    : (d.endereco ? d.endereco : `<span class="muted">Localização não divulgada</span>`);
+
+  const vm2Label = d.precoEstimado
+    ? `R$ ${Math.round(d.vm2Calc).toLocaleString('pt-BR')}/m² (estimado)`
+    : `R$ ${Math.round(d.vm2Calc).toLocaleString('pt-BR')}/m²`;
+  const vm2Note = d.vm2Informado && Math.round(d.vm2Informado)!==Math.round(d.vm2Calc)
+    ? `Divulgado pelo concorrente: R$ ${Math.round(d.vm2Informado).toLocaleString('pt-BR')}/m²`
+    : (d.precoEstimado ? `Calculado a partir do VM² divulgado de outra tipologia` : '');
+
+  const bar = paymentBar(d);
+  const condList = conditionListItems(d);
+  let condHTML;
+  if(bar){
+    const legendLbl = {entrada:'Entrada',parcelas:'Parcelas',baloes:'Balões',saldo:'Saldo/chaves'};
+    condHTML = `
+      <div class="cond-bar">${bar.map(b=>`<div class="cond-seg ${b.cls}" style="width:${(b.pct*100)}%"></div>`).join('')}</div>
+      <div class="cond-legend">${bar.map(b=>`<span><i class="${b.cls}"></i>${legendLbl[b.k]} ${fmtPct(b.pct)}</span>`).join('')}</div>
+    `;
+  } else if(condList.length){
+    condHTML = `<ul class="cond-list">${condList.map(i=>`<li>${i}</li>`).join('')}</ul>`;
+  } else {
+    condHTML = `<div class="cond-empty">Condições de pagamento não divulgadas.</div>`;
+  }
+
+  const amenHTML = d.amenidades.length
+    ? `<div class="amen-chips">${d.amenidades.map(a=>`<span class="chip"${d.amenidadeDescricoes?.[a] ? ` title="${d.amenidadeDescricoes[a]}"` : ''}>${a}</span>`).join('')}</div>
+       ${d.amenidadeDescricoes ? `<details class="amen-details"><summary>Ver descrições do lazer</summary><ul>${d.amenidades.map(a=>`<li><strong>${a}:</strong> ${d.amenidadeDescricoes[a]}</li>`).join('')}</ul></details>` : ''}`
+    : `<div class="amen-empty">Lazer ainda não levantado.</div>`;
+
+  return `
+    <div class="card ${selectable ? 'is-selectable' : ''}" data-id="${d.id}">
+      ${selectable ? `
+      <div class="card-select">
+        <span class="compare-check" data-check="${d.id}"></span>
+        <span class="compare-label">comparar</span>
+      </div>` : ''}
+      <div class="card-top">
+        <div>
+          <div class="card-id mono">${d.id}</div>
+          <div class="card-title">${d.nome}</div>
+          <div class="card-sub">${d.incorporadora ? d.incorporadora : '<span class="muted">Incorporadora não divulgada</span>'} · ${d.segmento}</div>
+        </div>
+        <span class="badge ${statusBadgeClass(d.status)}">${d.status}</span>
+      </div>
+
+      <div class="card-location">📍 ${loc}</div>
+      ${d.entrega || d.previsaoLancamento || d.garagem ? `<div class="card-extra">${d.entrega ? `<span><b>Entrega</b> ${d.entrega}</span>` : ''}${d.previsaoLancamento ? `<span><b>Lançamento</b> ${d.previsaoLancamento}</span>` : ''}${d.garagem ? `<span><b>Garagem</b> ${d.garagem}</span>` : ''}</div>` : ''}
+
+      <div class="stat-row">
+        <div class="stat">
+          <div class="lbl">Área privativa</div>
+          <div class="val">${fmtArea(d)}</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">A partir de</div>
+          <div class="val">${fmtBRL(d.precoMenor)}</div>
+        </div>
+      </div>
+
+      <div>
+        <span class="vm2-pill tier-${tier(d)}">${vm2Label}</span>
+        ${vm2Note ? `<div class="vm2-note">${vm2Note}</div>` : ''}
+      </div>
+
+      <div class="cond-block">
+        <div class="cond-title">Condição de pagamento</div>
+        ${condHTML}
+      </div>
+
+      <div class="amen-block">
+        <div class="amen-title"><span>Lazer</span><span>${d.amenidades.length ? d.amenidades.length + ' itens' : ''}</span></div>
+        ${amenHTML}
+      </div>
+    </div>
+  `;
+}
+
+/* ===================== RENDER: CARDS GRID ===================== */
+let selected = [];
+
+function renderCards(){
+  const grid = document.getElementById('cardsGrid');
+  grid.innerHTML = DATA.map(d=>cardHTML(d, true)).join('');
+  DATA.forEach(d=>{
+    const box = grid.querySelector(`[data-check="${d.id}"]`);
+    box.addEventListener('click', ()=>toggleSelect(d.id));
+  });
+  syncCheckboxes();
+}
+
+function toggleSelect(id){
+  if(selected.includes(id)){
+    selected = selected.filter(x=>x!==id);
+  } else {
+    if(selected.length>=3) return;
+    selected.push(id);
+  }
+  syncCheckboxes();
+  renderTray();
+}
+
+function syncCheckboxes(){
+  DATA.forEach(d=>{
+    const box = document.querySelector(`#cardsGrid [data-check="${d.id}"]`);
+    if(!box) return;
+    box.classList.toggle('checked', selected.includes(d.id));
+  });
+  document.getElementById('selCount').textContent = `${selected.length} selecionado${selected.length===1?'':'s'}`;
+}
+
+function renderTray(){
+  const tray = document.getElementById('compareTray');
+  const grid = document.getElementById('trayGrid');
+  if(selected.length < 2){ tray.classList.remove('show'); grid.innerHTML=''; return; }
+  tray.classList.add('show');
+  const items = selected.map(id=>DATA.find(d=>d.id===id));
+
+  const allAmen = [...new Set(items.flatMap(d=>d.amenidades))];
+
+  const rows = [];
+  rows.push({label:'', cells: items.map(d=>`<div class="tray-col-title">${d.nome}</div><div style="color:rgba(255,255,255,.55);font-size:11px" class="mono">${d.id}</div>`)});
+  rows.push({label:'Localização', cells: items.map(d=> d.bairro ? `${d.bairro}` : `<span style="color:rgba(255,255,255,.55);font-style:italic">não divulgada</span>`)});
+  rows.push({label:'Área', cells: items.map(d=> fmtArea(d))});
+  rows.push({label:'A partir de', cells: items.map(d=> fmtBRL(d.precoMenor))});
+  rows.push({label:'Entrega', cells: items.map(d=> d.entrega || '<span style="color:rgba(255,255,255,.55);font-style:italic">não divulgada</span>')});
+  rows.push({label:'Lançamento', cells: items.map(d=> d.previsaoLancamento || '<span style="color:rgba(255,255,255,.55);font-style:italic">não divulgado</span>')});
+  rows.push({label:'Garagem', cells: items.map(d=> d.garagem || '<span style="color:rgba(255,255,255,.55);font-style:italic">não divulgada</span>')});
+  rows.push({label:'R$/m²', cells: items.map(d=> `<b>${Math.round(d.vm2Calc).toLocaleString('pt-BR')}</b>${d.precoEstimado?' (est.)':''}`)});
+  rows.push({label:'Condição', cells: items.map(d=>{
+    const list = conditionListItems(d);
+    return list.length ? list.map(i=>i.replace(/<\/?strong>/g,'')).join('<br>') : '<span style="color:rgba(255,255,255,.55);font-style:italic">não divulgada</span>';
+  })});
+  if(allAmen.length){
+    rows.push({label:'Amenidades', cells: items.map(d=>{
+      return allAmen.map(a=> d.amenidades.includes(a)
+        ? `<div class="tray-amen-yes">✓ ${a}</div>`
+        : `<div class="tray-amen-no">— ${a}</div>`).join('');
+    })});
+  }
+
+  grid.innerHTML = rows.map(r=>`
+    <div class="tray-row" style="grid-template-columns:130px repeat(${items.length}, 1fr)">
+      <div class="tray-rowlabel">${r.label}</div>
+      ${r.cells.map(c=>`<div>${c}</div>`).join('')}
+    </div>
+  `).join('');
+}
+
+document.getElementById('trayClear').addEventListener('click', ()=>{
+  selected = []; syncCheckboxes(); renderTray();
+});
+document.getElementById('trayClose').addEventListener('click', ()=>{
+  document.getElementById('compareTray').classList.remove('show');
+});
+
+/* ===================== TABS ===================== */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+  });
+});
+
+/* ===================== INIT ===================== */
+document.getElementById('totalCount').textContent = DATA.length;
+renderMap();
+renderCards();
+</script>
+</body>
+</html>
